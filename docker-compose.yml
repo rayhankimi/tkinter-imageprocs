@@ -1,0 +1,9 @@
+services:
+  my-python-app:
+    image: my-python-app-image
+    container_name: my-python-app
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    network_mode: "host"
