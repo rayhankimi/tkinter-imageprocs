@@ -7,144 +7,172 @@ import os
 class ImageGUI:
     def __init__(self, root):
         self.root = root
-        self.selected_image = None
+
+        # Image related attributes
         self.image_paths = []
         self.current_image_index = 0
+        self.current_image_path = None
+        self.original_image = None  # The original image selected
+        self.processed_image = None  # The image after processing
 
-        self.image_label = None
-        self.load_button = None
-        self.prev_button = None
-        self.next_button = None
-        self.select_button = None
+        # GUI elements
+        self.image_label = tk.Label(self.root)
+        self.load_button = tk.Button(self.root, text="Select a picture directory...", command=self.load_images)
+        self.prev_button = tk.Button(self.root, text="Previous", command=self.previous_image)
+        self.next_button = tk.Button(self.root, text="Next", command=self.next_image)
+        self.select_button = tk.Button(self.root, text="Select this", command=self.select_image)
+        self.rotate_button = tk.Button(self.root, text="Rotate", command=self.rotate_image)
+        self.grayscale_button = tk.Button(self.root, text="Grayscale", command=self.convert_to_grayscale)
+        self.show_original_button = tk.Button(self.root, text="Show Original Image", command=self.show_original_image)
+        self.save_button = tk.Button(self.root, text="Save Image", command=self.save_image)
 
-        self.rotate_button = None
-        self.monochrome_button = None
-        self.save_button = None
-        self.show_original_button = None
-
-        self.image_object = None  # Save active picture
-        self.original_image = None  # Save original picture
-
+        # Setup root window
         self.root.title("Image Processing")
         self.root.geometry("600x700")
 
-        self.welcomeGUI()
+        # Setup initial GUI
+        self.setup_initial_gui()
 
-    def welcomeGUI(self):
-        self.image_label = tk.Label(self.root)
+    def setup_initial_gui(self):
+        """Setup the initial GUI elements."""
+        # Pack initial GUI elements
         self.image_label.pack(pady=20)
-
-        # Tombol untuk memuat gambar dari direktori
-        self.load_button = tk.Button(self.root, text="Select a picture directory...", command=self.load_images)
         self.load_button.pack(pady=10)
-
-        # Tombol untuk navigasi gambar
-        self.prev_button = tk.Button(self.root, text="Previous", command=self.previous_image)
         self.prev_button.pack(side=tk.LEFT, padx=20)
-
-        self.next_button = tk.Button(self.root, text="Next", command=self.next_image)
         self.next_button.pack(side=tk.RIGHT, padx=20)
-
-        # Tombol untuk memilih gambar saat ini
-        self.select_button = tk.Button(self.root, text="Select this", command=self.select_image)
         self.select_button.pack(pady=20)
 
-    def updateGUI(self):
+        # Hide processing buttons
+        self.rotate_button.pack_forget()
+        self.grayscale_button.pack_forget()
+        self.show_original_button.pack_forget()
+        self.save_button.pack_forget()
+
+    def setup_processing_gui(self):
+        """Setup the GUI elements for image processing."""
+        # Unpack initial GUI elements
         self.load_button.pack_forget()
         self.prev_button.pack_forget()
         self.next_button.pack_forget()
         self.select_button.pack_forget()
 
-        self.rotate_button = tk.Button(self.root, text="Rotate", command=lambda: self.rotate_image())
-        self.rotate_button.pack(pady=20)
+        # Pack processing buttons
+        self.rotate_button.pack(pady=10)
+        self.grayscale_button.pack(pady=10)
+        self.show_original_button.pack(pady=10)
+        self.save_button.pack(pady=10)
 
-        self.monochrome_button = tk.Button(self.root, text="B&W", command=lambda: self.bnw_image())
-        self.monochrome_button.pack(pady=20)
-        
-        self.show_original_button = tk.Button(self.root, text="Show Original Image", command=self.show_original_image)
-        self.show_original_button.pack(pady=20)
-
-        self.save_button = tk.Button(self.root, text="Save Image", command=self.save_image)
-        self.save_button.pack(pady=20)
-
-        self.show_image(self.selected_image)
+        # Show the selected image
+        self.display_image_in_label(self.processed_image)
 
     def load_images(self):
-        # Membuka dialog untuk memilih direktori
+        """Load image paths from a selected directory."""
         directory = filedialog.askdirectory()
         if directory:
-            # Mencari semua file gambar dalam direktori
             self.image_paths = [os.path.join(directory, f) for f in os.listdir(directory)
                                 if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
             if not self.image_paths:
-                messagebox.showinfo("Info", "Tidak ada gambar di direktori ini.")
+                messagebox.showinfo("Info", "No images found in this directory.")
             else:
                 self.current_image_index = 0
-                self.show_image(self.image_paths[self.current_image_index])
+                self.current_image_path = self.image_paths[self.current_image_index]
+                self.show_image(self.current_image_path)
 
-    def show_image(self, path):
+    def load_image(self, image_path):
+        """Load an image from the given path."""
         try:
-            self.image_object = Image.open(path)  
-            img = self.image_object.resize((500, 500))
-            img_tk = ImageTk.PhotoImage(img)
-            self.image_label.config(image=img_tk)
-            self.image_label.image = img_tk
+            image = Image.open(image_path)
+            return image
         except Exception as e:
-            messagebox.showerror("Error", f"Gagal memuat gambar: {e}")
+            messagebox.showerror("Error", f"Failed to load image: {e}")
+            return None
+
+    def display_image_in_label(self, image):
+        """Display the given PIL Image in the image label."""
+        if image:
+            img_resized = image.resize((500, 500))
+            img_tk = ImageTk.PhotoImage(img_resized)
+            self.image_label.config(image=img_tk)
+            self.image_label.image = img_tk  # Keep a reference
+
+    def show_image(self, image_path):
+        """Load and display the image from the given path."""
+        image = self.load_image(image_path)
+        if image:
+            self.display_image_in_label(image)
 
     def next_image(self):
+        """Navigate to the next image."""
         if self.image_paths:
             self.current_image_index = (self.current_image_index + 1) % len(self.image_paths)
-            self.show_image(self.image_paths[self.current_image_index])
+            self.current_image_path = self.image_paths[self.current_image_index]
+            self.show_image(self.current_image_path)
+        else:
+            messagebox.showwarning("No Images", "No images loaded. Please load images first.")
 
     def previous_image(self):
+        """Navigate to the previous image."""
         if self.image_paths:
             self.current_image_index = (self.current_image_index - 1) % len(self.image_paths)
-            self.show_image(self.image_paths[self.current_image_index])
+            self.current_image_path = self.image_paths[self.current_image_index]
+            self.show_image(self.current_image_path)
+        else:
+            messagebox.showwarning("No Images", "No images loaded. Please load images first.")
 
     def select_image(self):
+        """Select the current image for processing."""
         if self.image_paths:
-            self.selected_image = self.image_paths[self.current_image_index]
-            messagebox.showinfo("Gambar Dipilih", f"Gambar berikut dipilih:\n{self.selected_image}")
-            self.original_image = Image.open(self.selected_image)
-            self.updateGUI()
+            self.current_image_path = self.image_paths[self.current_image_index]
+            self.original_image = self.load_image(self.current_image_path)
+            if self.original_image:
+                self.processed_image = self.original_image.copy()
+                messagebox.showinfo("Image Selected", f"Selected image:\n{self.current_image_path}")
+                self.setup_processing_gui()
         else:
-            messagebox.showwarning("Belum ada gambar!", "Belum ada gambar yang dipilih, coba pilih!")
+            messagebox.showwarning("No Image", "No image selected. Please select an image.")
 
     def rotate_image(self):
-        if self.image_object:
-            self.image_object = self.image_object.rotate(90, expand=True)  # Menyimpan perubahan rotasi
-            img_tk = ImageTk.PhotoImage(self.image_object.resize((500, 500)))
-            self.image_label.config(image=img_tk)
-            self.image_label.image = img_tk
+        """Rotate the processed image by 90 degrees."""
+        if self.processed_image:
+            self.processed_image = self.processed_image.rotate(90, expand=True)
+            self.display_image_in_label(self.processed_image)
+        else:
+            messagebox.showwarning("No Image", "No image loaded. Please select an image.")
 
-    def bnw_image(self):
-        if self.image_object:
-            self.image_object = ImageOps.grayscale(self.image_object)
-            img_tk = ImageTk.PhotoImage(self.image_object.resize((500, 500)))
-            self.image_label.config(image=img_tk)
-            self.image_label.image = img_tk
-    
+    def convert_to_grayscale(self):
+        """Convert the processed image to grayscale."""
+        if self.processed_image:
+            self.processed_image = ImageOps.grayscale(self.processed_image)
+            self.display_image_in_label(self.processed_image)
+        else:
+            messagebox.showwarning("No Image", "No image loaded. Please select an image.")
+
     def show_original_image(self):
-        if self.image_object:
-            self.image_object = self.original_image
-            img_tk = ImageTk.PhotoImage(self.image_object.resize((500, 500)))
-            self.image_label.config(image=img_tk)
-            self.image_label.image = img_tk
+        """Revert to the original image."""
+        if self.original_image:
+            self.processed_image = self.original_image.copy()
+            self.display_image_in_label(self.processed_image)
+        else:
+            messagebox.showwarning("No Original Image", "No original image available.")
 
     def save_image(self):
-        if self.image_object:
-            # Membuka dialog save file
+        """Save the processed image to a file."""
+        if self.processed_image:
             file_path = filedialog.asksaveasfilename(defaultextension=".png",
                                                      filetypes=[("PNG files", "*.png"),
                                                                 ("JPEG files", "*.jpg"),
                                                                 ("All files", "*.*")])
             if file_path:
                 try:
-                    # Menyimpan gambar saat ini ke path yang dipilih
-                    self.image_object.save(file_path)
+                    self.processed_image.save(file_path)
                     messagebox.showinfo("Image Saved", f"Image has been saved at: {file_path}")
                 except Exception as e:
                     messagebox.showerror("Save Error", f"Failed to save image: {e}")
         else:
             messagebox.showwarning("No Image", "No image to save. Please edit an image first.")
+
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    app = ImageGUI(root)
+    root.mainloop()
